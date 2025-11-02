@@ -499,6 +499,21 @@ static const IPV4Hdr *DecodeIPV4Packet(Packet *p, const uint8_t *pkt, uint16_t l
     SET_IPV4_SRC_ADDR(ip4h, &p->src);
     SET_IPV4_DST_ADDR(ip4h, &p->dst);
 
+/* CUSTOM: log src/dist IPs  */
+
+char src[16], dst[16];
+// использую PrintInet() уже готовая утилиту из Suricata, конвертирующую IP-адреса в строку.
+PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), src, sizeof(src));
+PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dst, sizeof(dst));
+
+FILE *f = fopen("/suricata/ip_log.txt", "a");
+if (f != NULL) {
+    fprintf(f, "[IPv4] SRC=%s DST=%s \n", src, dst);
+    fclose(f);
+}
+/* END CUSTOM */
+
+
     /* save the options len */
     uint8_t ip_opt_len = IPV4_GET_RAW_HLEN(ip4h) - IPV4_HEADER_LEN;
     if (ip_opt_len > 0) {
