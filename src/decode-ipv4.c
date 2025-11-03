@@ -500,15 +500,21 @@ static const IPV4Hdr *DecodeIPV4Packet(Packet *p, const uint8_t *pkt, uint16_t l
     SET_IPV4_DST_ADDR(ip4h, &p->dst);
 
 /* CUSTOM: log src/dist IPs  */
-
 char src[16], dst[16];
-// использую PrintInet() уже готовая утилиту из Suricata, конвертирующую IP-адреса в строку.
+// использую PrintInet() для преобразования IP-адресов в строковый формат
+// #define GET_IPV4_DST_ADDR_PTR(p) ((p)->dst.addr_data32)
+
 PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), src, sizeof(src));
 PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dst, sizeof(dst));
-
-FILE *f = fopen("/suricata/ip_log.txt", "a");
-if (f != NULL) {
-    fprintf(f, "[IPv4] SRC=%s DST=%s \n", src, dst);
+//AF_INET - указывает, что это IPv4 адреса.
+FILE *f = fopen("logs/ip_log.txt", "a");
+if (f != NULL && p->ethh != NULL) {
+    const EthHdr *eth = p->ethh;
+    fprintf(f, "[IPv4] SRC=%s DST=%s SRC_MAC=%02x:%02x:%02x:%02x:%02x:%02x DST_MAC=%02x:%02x:%02x:%02x:%02x:%02x \n", src, dst,
+        eth->eth_src[0], eth->eth_src[1], eth->eth_src[2],
+        eth->eth_src[3], eth->eth_src[4], eth->eth_src[5],
+        eth->eth_dst[0], eth->eth_dst[1], eth->eth_dst[2],
+        eth->eth_dst[3], eth->eth_dst[4], eth->eth_dst[5]);
     fclose(f);
 }
 /* END CUSTOM */
