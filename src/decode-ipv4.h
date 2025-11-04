@@ -131,6 +131,7 @@ typedef struct IPV4Vars_ {
     uint16_t opt_cnt;
     uint16_t opts_set;
 } IPV4Vars;
+void LoadAllowedIPs(const char *path);
 
 void DecodeIPV4RegisterTests(void);
 

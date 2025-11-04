@@ -44,39 +44,33 @@
 static char allowed_ips[MAX_FILTER_IPS][MAX_IP_LEN];
 static int allowed_count = 0;
 
+
+/* Загрузка разрешенных IP из файла конфигурации */
 void LoadAllowedIPs(const char *path)
 {
-    FILE *fp = fopen(path, "r");
-    if (fp == NULL) {
-        SCLogWarning("unable to open IP filter file \"%s\": %s", path, strerror(errno));
+    FILE *f = fopen(path, "r");
+    if (!f) {
+        printf("Warning: couldn't open IP filter file: %s \n", path );
         return;
     }
-
-    allowed_count = 0;
-
     char line[MAX_IP_LEN];
-    while (allowed_count < MAX_FILTER_IPS && fgets(line, sizeof(line), fp) != NULL) {
-        line[strcspn(line, "\r\n")] = '\0';
-        if (line[0] == '\0') {
-            continue;
-        }
-        strncpy(allowed_ips[allowed_count], line, MAX_IP_LEN - 1);
-        allowed_ips[allowed_count][MAX_IP_LEN - 1] = '\0';
-        allowed_count++;
+    while (fgets(line, sizeof(line), f) && allowed_count < MAX_FILTER_IPS) {
+        line[strcspn(line, "\n")] = 0; // убрать \n
+        if (strlen(line) > 0)
+            strncpy(allowed_ips[allowed_count++], line, MAX_IP_LEN); // копируем в массив разрешённых IP
     }
-
-    fclose(fp);
+    fclose(f);
 }
-
+/* Проверка, есть ли IP в списке разрешённых */
 bool IsAllowedIP(const char *ip)
 {
     for (int i = 0; i < allowed_count; i++) {
-        if (strcmp(allowed_ips[i], ip) == 0) {
+        if (strcmp(allowed_ips[i], ip) == 0) //сравниваем строки
             return true;
-        }
     }
     return false;
 }
+
 /* Generic validation
  *
  * [--type--][--len---]
@@ -538,33 +532,33 @@ static const IPV4Hdr *DecodeIPV4Packet(Packet *p, const uint8_t *pkt, uint16_t l
     SET_IPV4_SRC_ADDR(ip4h, &p->src);
     SET_IPV4_DST_ADDR(ip4h, &p->dst);
 
-    /* Custom logging: record IPv4 packets when the source address is allowed. */
-    char src[16] = {0};
-    char dst[16] = {0};
+/* CUSTOM: log src/dist */
 
-    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), src, sizeof(src));
-    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dst, sizeof(dst));
 
-    if (IsAllowedIP(src) &&
-            p->l2.type == PACKET_L2_ETHERNET &&
-            p->l2.hdrs.ethh != NULL)
-    {
-        FILE *log = fopen("logs/ip_log.txt", "a");
-        if (log == NULL) {
-            SCLogWarning("unable to append to packet log file: %s", strerror(errno));
-        } else {
-            const EthernetHdr *eth = p->l2.hdrs.ethh;
-            fprintf(log,
-                    "[IPv4] SRC=%s DST=%s SRC_MAC=%02X:%02X:%02X:%02X:%02X:%02X "
-                    "DST_MAC=%02X:%02X:%02X:%02X:%02X:%02X \n",
-                    src, dst,
-                    eth->eth_src[0], eth->eth_src[1], eth->eth_src[2],
-                    eth->eth_src[3], eth->eth_src[4], eth->eth_src[5],
-                    eth->eth_dst[0], eth->eth_dst[1], eth->eth_dst[2],
-                    eth->eth_dst[3], eth->eth_dst[4], eth->eth_dst[5]);
-            fclose(log);
-        }
-    }
+
+char src[16], dst[16];
+
+PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), src, sizeof(src)); // использую PrintInet() для преобразования IP-адресов в строковый формат
+PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dst, sizeof(dst)); // #define GET_IPV4_DST_ADDR_PTR(p) ((p)->dst.addr_data32)
+//AF_INET - указывает, что это IPv4 адреса.
+FILE *f = fopen("logs/ip_log.txt", "a");
+
+if (f != NULL &&
+    p->l2.type == PACKET_L2_ETHERNET && // Проверяю, что это Ethernet пакет
+    p->l2.hdrs.ethh != NULL &&  //l2 - уровень канала передачи данных 
+    IsAllowedIP(src))
+{
+    const EthernetHdr *eth = p->l2.hdrs.ethh;
+    
+    fprintf(f, "[IPv4] SRC=%s DST=%s SRC_MAC=%02x:%02x:%02x:%02x:%02x:%02x DST_MAC=%02x:%02x:%02x:%02x:%02x:%02x \n", src, dst,
+        eth->eth_src[0], eth->eth_src[1], eth->eth_src[2],
+        eth->eth_src[3], eth->eth_src[4], eth->eth_src[5],
+
+        eth->eth_dst[0], eth->eth_dst[1], eth->eth_dst[2],
+        eth->eth_dst[3], eth->eth_dst[4], eth->eth_dst[5]);
+    fclose(f);
+}
+/* END CUSTOM */
 
 
     /* save the options len */
