@@ -3082,14 +3082,12 @@ void SuricataInit(void)
     if (suricata.run_mode == RUNMODE_DPDK)
         prerun_snap = SystemHugepageSnapshotCreate();
 
-/* START CUSTOM */
-    //Выбираю это место в проекте так, как в SuricataInit загружается конфигурация и инициализируются основные компоненты системы.
-    static bool ips_loaded = false; //Позволяет загружать IP-фильтр только один раз
+    /* Custom: load the allowed IP filter once during initialization. */
+    static bool ips_loaded = false;
     if (!ips_loaded) {
-    LoadAllowedIPs("config/ip_filter.conf"); //Загрузка IP-фильтра из файла
-    ips_loaded = true;
+        LoadAllowedIPs("config/ip_filter.conf");
+        ips_loaded = true;
     }
-/* END CUSTOM */
 
     SCSetStartTime(&suricata);
     if (suricata.run_mode != RUNMODE_UNIX_SOCKET) {
@@ -3177,3 +3175,4 @@ void SuricataPostInit(void)
     }
     SCPledge();
 }
+
