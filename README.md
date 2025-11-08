@@ -1,3 +1,60 @@
+**/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=**
+# Дополнение для тестового задания на Suricata
+
+## 1. Описание задачи
+В рамках тестового задания нужно было модифицировать Suricata 7.0.12:
+    * добавить вывод IP-адресов и MAC-адресов проходящих пакетов;
+    * сделать фильтрацию по src IP низ файла;
+    * оформить решение в виде patch-файла и README.md.
+Все изменения находятся в ветке `custom`
+
+## 2. Где внесены изменения 
+Все основные изменения сделаны в:
+src/decode-ipv4.c
+Причины выбора функции `DecodeIPV4()`: доступны структуры `p->src`, `p->dst` , `p->ethh после разбора заголовка;
+
+также небольшие изменения в файле suricata.c
+
+## 3. Логирование
+Добавлен в формате строки :
+  SRC_IP=... DST_IP=... SRC_MAC=... DST_MAC=...
+
+Логи записываются в:
+  logs/new_logs/ip_log.txt
+## 4. Ограничение по источнику IP
+В файле ip_filter.conf помещается список разрешённых адресов, у меня по умолчанию:
+172.27.112.1
+185.125.190.56
+
+## 5. Тестирование
+  Генерация PCAP:
+    sudo tcpdump -i eth0 -w test.pcap -c 100
+
+    мой сохраненый файл pcap с трафиком /Config/test_captured_trafic.pcap
+
+  Запуск Suricata в offline-режиме
+    sudo ./src/suricata -c suricata.yaml -r test.pcap -l logs/
+
+## 6. Patch-file
+Patch находится в корне:
+
+packet_logging.patch
+
+Создан командой:
+git diff main...custom > packet_logging.patch
+
+## 7. Сборка проекта
+
+./autogen.sh
+./configure --enable-magic --enable-file
+make -j$(nproc)
+
+Запуск: sudo ./src/suricata -c suricata.yaml -i eth0 -l logs/
+
+**/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=**
+
+
+
 # Suricata
 
 [![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/suricata.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:suricata)
