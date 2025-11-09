@@ -45,7 +45,7 @@ Patch находится в корне:
 packet_logging.patch
 
 Создан командой:
-git diff main...custom > packet_logging.patch
+git diff main...HEAD > packet_logging.patch
 
 ## 7. Сборка проекта
 
