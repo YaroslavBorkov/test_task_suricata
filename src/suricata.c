@@ -3086,7 +3086,7 @@ void SuricataInit(void)
     //Выбираю это место в проекте так, как в SuricataInit загружается конфигурация и инициализируются основные компоненты системы.
     static bool ips_loaded = false; //Позволяет загружать IP-фильтр только один раз
     if (!ips_loaded) {
-    LoadAllowedIPs("config/ip_filter.conf"); //Загрузка IP-фильтра из файла
+    LoadAllowedIPs("Config/ip_filter.conf"); //Загрузка IP-фильтра из файла
     ips_loaded = true;
     }
 /* END CUSTOM */

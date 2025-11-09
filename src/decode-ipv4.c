@@ -45,7 +45,7 @@ static char allowed_ips[MAX_FILTER_IPS][MAX_IP_LEN];
 static int allowed_count = 0;
 
 
-/* Загрузка разрешенных IP из файла конфигурации */
+/* Загрузка разрешенных IP из файла конфига */
 void LoadAllowedIPs(const char *path)
 {
     FILE *f = fopen(path, "r");
@@ -61,15 +61,19 @@ void LoadAllowedIPs(const char *path)
     }
     fclose(f);
 }
-/* Проверка, есть ли IP в списке разрешённых */
+/* Проверка есть ли IP в списке разрешённых */
 bool IsAllowedIP(const char *ip)
 {
+    if (allowed_count == 0) {
+        return true; // если файл пустой логируем всё
+    }
     for (int i = 0; i < allowed_count; i++) {
         if (strcmp(allowed_ips[i], ip) == 0) //сравниваем строки
             return true;
     }
     return false;
 }
+
 
 /* Generic validation
  *
@@ -541,7 +545,7 @@ char src[16], dst[16];
 PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), src, sizeof(src)); // использую PrintInet() для преобразования IP-адресов в строковый формат
 PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dst, sizeof(dst)); // #define GET_IPV4_DST_ADDR_PTR(p) ((p)->dst.addr_data32)
 //AF_INET - указывает, что это IPv4 адреса.
-FILE *f = fopen("logs/ip_log.txt", "a");
+FILE *f = fopen("logs/ip_log.log", "a");
 
 if (f != NULL &&
     p->l2.type == PACKET_L2_ETHERNET && // Проверяю, что это Ethernet пакет
@@ -550,7 +554,7 @@ if (f != NULL &&
 {
     const EthernetHdr *eth = p->l2.hdrs.ethh;
     
-    fprintf(f, "[IPv4] SRC=%s DST=%s SRC_MAC=%02x:%02x:%02x:%02x:%02x:%02x DST_MAC=%02x:%02x:%02x:%02x:%02x:%02x \n", src, dst,
+    fprintf(f, "[IPv4] SRC_IP=%s DST_IP=%s SRC_MAC=%02x:%02x:%02x:%02x:%02x:%02x DST_MAC=%02x:%02x:%02x:%02x:%02x:%02x \n", src, dst,
         eth->eth_src[0], eth->eth_src[1], eth->eth_src[2],
         eth->eth_src[3], eth->eth_src[4], eth->eth_src[5],
 
